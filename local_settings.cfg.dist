@@ -1,2 +1,8 @@
 username:"me@example.com"
 password:"SuperSecretPassword"
+timeout:5
+gpio_pin:12
+log_level:"debug"
+max_temperature:100
+i2c_address:0x48
+smbus:1

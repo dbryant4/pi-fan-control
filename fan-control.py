@@ -1,21 +1,59 @@
 import sys
+import time
+import logging
+import smbus
+import RPi.GPIO as GPIO
 try:
     from config import Config
 except:
     print "Unable to load the \"config\" module\n    easy_install config"
     sys.exit(-1)
 
-from nest import Nest
+try:
+    from nest import Nest
+except:
+    print "Unable to load \"nest\" module. See README.md for URL"
 
 cfg = Config(file('local_settings.cfg'))
 
+numeric_level = getattr(logging, cfg.log_level.upper(), None)
+if not isinstance(numeric_level, int):
+    raise ValueError('Invalid log level: %s' % loglevel)
+logging.basicConfig(level=numeric_level)
+
+logging.debug("Initializing GPIO settings.")
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(cfg.gpio_pin, GPIO.OUT)
+
+logging.debug("Logging in to Nest thermostat")
 n = Nest(cfg.username, cfg.password)
 n.login()
-n.get_status()
 #print n.status['device'][n.serial]
-away = n.status['shared'][n.serial]['auto_away']
+#print n.status['shared'][n.serial]
 
-if away:
-    print "Auto away engaged"
-else:
-    print "Auto away not engaged"
+bus = smbus.SMBus(cfg.smbus)
+
+while True:
+    n.get_status()
+    away = n.status['shared'][n.serial]['auto_away']
+    hvac_fan_on = n.status['shared'][n.serial]['hvac_fan_state']
+    try:
+        current_temperature = bus.read_byte(0x48) * 1.8 + 32
+    except IOError:
+        pass
+    logging.debug("Temperature: %s", current_temperature)
+    if away:
+        logging.debug("Auto away enabled. Turning on fan.")
+        GPIO.output(cfg.gpio_pin, True)
+    elif hvac_fan_on:
+        logging.debug("HVAC system running. Turning on fan.")
+        GPIO.output(cfg.gpio_pin, True)
+    elif current_temperature > cfg.max_temperature:
+        logging.debug("Current Temperature is over max threshold. Turning on fan.")
+        GPIO.output(cfg.gpio_pin, True)
+    else:
+        logging.debug("Nothing going on. Turning off fan.")
+        GPIO.output(cfg.gpio_pin, False)
+    logging.debug("Sleeping for %s seconds.",cfg.timeout)
+    time.sleep(cfg.timeout)
