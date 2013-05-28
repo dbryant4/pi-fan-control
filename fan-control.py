@@ -35,14 +35,23 @@ n.login()
 bus = smbus.SMBus(cfg.smbus)
 
 while True:
-    n.get_status()
+    try:
+        n.get_status()
+    except urllib2.URLError:
+        pass
+
     away = n.status['shared'][n.serial]['auto_away']
     hvac_fan_on = n.status['shared'][n.serial]['hvac_fan_state']
-    try:
-        current_temperature = bus.read_byte(0x48) * 1.8 + 32
-    except IOError:
-        pass
+    while True:
+        try:
+            current_temperature = bus.read_byte(0x48) * 1.8 + 32
+        except IOError:
+            logging.debug("Error getting temperature. Retrying...")
+        else:
+            break
+
     logging.debug("Temperature: %s", current_temperature)
+    
     if away:
         logging.debug("Auto away enabled. Turning on fan.")
         GPIO.output(cfg.gpio_pin, True)
@@ -56,4 +65,10 @@ while True:
         logging.debug("Nothing going on. Turning off fan.")
         GPIO.output(cfg.gpio_pin, False)
     logging.debug("Sleeping for %s seconds.",cfg.timeout)
-    time.sleep(cfg.timeout)
+
+    try:
+        time.sleep(cfg.timeout)
+    except KeyboardInterrupt:
+        logging.debug("Caught ctrl+c. Turning fan on.")
+        GPIO.output(cfg.gpio_pin, True)
+        sys.exit(0)
