@@ -2,6 +2,7 @@ import sys
 import time
 import logging
 import smbus
+import urllib2
 import RPi.GPIO as GPIO
 try:
     from config import Config
@@ -28,7 +29,12 @@ GPIO.setup(cfg.gpio_pin, GPIO.OUT)
 
 logging.debug("Logging in to Nest thermostat")
 n = Nest(cfg.username, cfg.password)
-n.login()
+try:
+    n.login()
+except urllib2.URLError:
+    logging.error("Unable to login to Nest")
+    sys.exit(1)
+    
 #print n.status['device'][n.serial]
 #print n.status['shared'][n.serial]
 
