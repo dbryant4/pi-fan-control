@@ -48,6 +48,8 @@ class fan_control:
       try:
         GPIO.output(self.gpio_pin, False)
         self.last_action_time = datetime.now()
+        self.on = False
+        self.off = True
       except:
         return 1
     else:
