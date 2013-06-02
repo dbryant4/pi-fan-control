@@ -3,7 +3,9 @@ import time
 import logging
 import smbus
 import urllib2
-import RPi.GPIO as GPIO
+
+from fancontrol import fan_control
+
 try:
     from config import Config
 except:
@@ -15,17 +17,19 @@ try:
 except:
     print "Unable to load \"nest\" module. See README.md for URL"
 
+# Read configuration file
 cfg = Config(file('local_settings.cfg'))
 
+# Setup logging module
 numeric_level = getattr(logging, cfg.log_level.upper(), None)
 if not isinstance(numeric_level, int):
     raise ValueError('Invalid log level: %s' % loglevel)
-logging.basicConfig(level=numeric_level)
+#logging.basicConfig(level=numeric_level, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename='/dev/shm/fan-control.log')
+logging.basicConfig(level=numeric_level, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-logging.debug("Initializing GPIO settings.")
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(cfg.gpio_pin, GPIO.OUT)
+logging.debug("Initializing fan control")
+fan = fan_control(cfg.gpio_pin)
+
 
 logging.debug("Logging in to Nest thermostat")
 n = Nest(cfg.username, cfg.password)
@@ -60,21 +64,22 @@ while True:
     
     if away:
         logging.debug("Auto away enabled. Turning on fan.")
-        GPIO.output(cfg.gpio_pin, True)
+        fan.turn_on()
     elif hvac_fan_on:
         logging.debug("HVAC system running. Turning on fan.")
-        GPIO.output(cfg.gpio_pin, True)
+        fan.turn_on()
     elif current_temperature > cfg.max_temperature:
         logging.debug("Current Temperature is over max threshold. Turning on fan.")
-        GPIO.output(cfg.gpio_pin, True)
+        fan.turn_on()
     else:
         logging.debug("Nothing going on. Turning off fan.")
-        GPIO.output(cfg.gpio_pin, False)
+        fan.turn_off()
     logging.debug("Sleeping for %s seconds.",cfg.timeout)
 
+    # Capture ctrl+c and turn fan on 
     try:
         time.sleep(cfg.timeout)
     except KeyboardInterrupt:
         logging.debug("Caught ctrl+c. Turning fan on.")
-        GPIO.output(cfg.gpio_pin, True)
+        fan.turn_on()
         sys.exit(0)
