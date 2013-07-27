@@ -1,5 +1,5 @@
-username:"me@example.com"
-password:"SuperSecretPassword"
+nest_username:"me@example.com"
+nest_password:"SuperSecretPassword"
 timeout:5
 gpio_pin:12
 log_level:"debug"
