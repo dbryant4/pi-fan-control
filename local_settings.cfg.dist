@@ -1,7 +1,7 @@
 nest_username:"me@example.com"
 nest_password:"SuperSecretPassword"
 timeout:5
-gpio_pin:12
+gpio_pin:11
 log_level:"debug"
 max_temperature:100
 i2c_address:0x48
