@@ -35,7 +35,7 @@ fan = fan_control(cfg.gpio_pin)
 
 
 logging.debug("Logging in to Nest thermostat")
-n = Nest(cfg.username, cfg.password)
+n = Nest(cfg.nest_username, cfg.nest_password)
 try:
     n.login()
 except urllib2.URLError:
