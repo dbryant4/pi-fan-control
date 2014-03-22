@@ -54,6 +54,8 @@ while True:
         n.get_status()
     except urllib2.URLError:
         pass
+    except:
+      logging.error("Unexpected error. Continuing with last values from Nest: " + sys.exc_info()[0])
 
     away = n.status['shared'][n.serial]['auto_away']
     hvac_fan_on = n.status['shared'][n.serial]['hvac_fan_state']
